@@ -22,12 +22,59 @@
       min-height: 100vh;
       padding: 20px;
       user-select: none;
+      position: relative;
+    }
+
+    /* ------------------------------------
+       1. KOTAK LOGO DI POJOK KIRI ATAS (5 LOGO)
+    ------------------------------------ */
+    .logo-corner {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 100;
+      flex-wrap: wrap;
+    }
+
+    .logo-box {
+      width: 45px;
+      height: 45px;
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+      padding: 2px;
+      flex-shrink: 0;
+    }
+
+    /* Styling untuk gambar logo di dalam kotak */
+    .logo-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .brand-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #4ade80;
+      letter-spacing: 0.5px;
+      margin-left: 4px;
     }
 
     h1 {
       margin-bottom: 10px;
       font-size: 2.2rem;
       color: #4ade80;
+      margin-top: 10px;
     }
 
     /* Papan Skor & Level */
@@ -87,9 +134,31 @@
       text-align: center;
       max-width: 600px;
     }
+
+    /* Responsif untuk Layar Kecil/HP */
+    @media (max-width: 600px) {
+      .logo-corner {
+        position: static;
+        margin-bottom: 15px;
+        justify-content: center;
+      }
+      h1 {
+        margin-top: 0;
+      }
+    }
   </style>
 </head>
 <body>
+
+  <!-- KOTAK LOGO POJOK KIRI ATAS (5 LOGO) -->
+  <div class="logo-corner">
+    <div class="logo-box"><img src="logo1.jpg" alt="l6"></div>
+    <div class="logo-box"><img src="logo2.jpg" alt="l2"></div>
+    <div class="logo-box"><img src="logo3.jpg" alt="l3"></div>
+    <div class="logo-box"><img src="logo4.jpg" alt="l4"></div>
+    <div class="logo-box"><img src="logo5.jpg" alt="l5"></div>
+    <span class="brand-name">Petani Padi</span>
+  </div>
 
   <h1>Petani Menanam Padi 🌾</h1>
 
@@ -119,12 +188,81 @@
   </div>
 
   <div class="instructions">
-    <b>Cara Bermain:</b> Klik petak sawah lumpur untuk menanam bibit padi 🌱. Tunggu hingga padi menguning 🌾 lalu klik untuk memanen! Usir hama 🐀/🐦 sebelum memakan padimu.
+    <b>Cara Bermain:</b> Klik petak sawah lumpur untuk menanam bibit padi 🌱. Tunggu hingga padi menguning 🌾 lalu klik untuk memanen! Usir hama 🐀/🐦 sebelum memakan padimu. Pastikan <b>Volume perangkatmu</b> sudah diaktifkan.
   </div>
 
   <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+
+    // --- SETUP AUDIO (Web Audio API) ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = new AudioContext();
+
+    function playSound(type) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      osc.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      const now = audioCtx.currentTime;
+      
+      if (type === 'plant') {
+        // Suara menanam bibit (boop pendek)
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+        gainNode.gain.setValueAtTime(0.5, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      } 
+      else if (type === 'harvest') {
+        // Suara panen (nada tinggi seperti koin)
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.setValueAtTime(1760, now + 0.1);
+        gainNode.gain.setValueAtTime(0.1, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      }
+      else if (type === 'pest') {
+        // Suara pukul/mengusir hama
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      }
+      else if (type === 'levelup') {
+        // Suara level up (nada naik bahagia)
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.setValueAtTime(554, now + 0.15);
+        osc.frequency.setValueAtTime(659, now + 0.3);
+        osc.frequency.setValueAtTime(880, now + 0.45);
+        gainNode.gain.setValueAtTime(0.2, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.6);
+        osc.start(now);
+        osc.stop(now + 0.6);
+      }
+      else if (type === 'gameover') {
+        // Suara game over (nada turun sedih)
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.setValueAtTime(250, now + 0.3);
+        osc.frequency.setValueAtTime(200, now + 0.6);
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + 1);
+        osc.start(now);
+        osc.stop(now + 1);
+      }
+    }
 
     // Elemen DOM Skor
     const scoreText = document.getElementById('scoreText');
@@ -143,26 +281,15 @@
 
     // Karakter Petani (Manusia)
     const farmer = {
-      x: 100,
-      y: 100,
-      targetX: 100,
-      targetY: 100,
-      speed: 6,
-      width: 32,
-      height: 48,
-      isMoving: false
+      x: 100, y: 100, targetX: 100, targetY: 100,
+      speed: 6, width: 32, height: 48, isMoving: false
     };
 
     // Grid Petak Sawah (3 baris x 4 kolom = 12 Petak)
     const plots = [];
-    const cols = 4;
-    const rows = 3;
-    const plotWidth = 140;
-    const plotHeight = 90;
-    const startX = 90;
-    const startY = 80;
-    const gapX = 35;
-    const gapY = 35;
+    const cols = 4, rows = 3;
+    const plotWidth = 140, plotHeight = 90;
+    const startX = 90, startY = 80, gapX = 35, gapY = 35;
 
     function initPlots() {
       plots.length = 0;
@@ -172,11 +299,8 @@
             id: r * cols + c,
             x: startX + c * (plotWidth + gapX),
             y: startY + r * (plotHeight + gapY),
-            width: plotWidth,
-            height: plotHeight,
-            state: 'EMPTY', // 'EMPTY', 'SEED', 'GROWING', 'READY', 'PEST'
-            growthProgress: 0,
-            pestTimer: 0
+            width: plotWidth, height: plotHeight,
+            state: 'EMPTY', growthProgress: 0, pestTimer: 0
           });
         }
       }
@@ -184,14 +308,16 @@
 
     // Input Mouse Click
     canvas.addEventListener('click', (e) => {
+      // Wajib di-resume untuk kebijakan autoplay browser
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
       const rect = canvas.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
       const clickY = e.clientY - rect.top;
 
       if (gameState === 'START' || gameState === 'GAMEOVER' || gameState === 'LEVEL_COMPLETE') {
         if (gameState === 'GAMEOVER') {
-          level = 1;
-          score = 0;
+          level = 1; score = 0;
         }
         startLevel();
         return;
@@ -200,16 +326,11 @@
       // Deteksi Klik pada Petak Sawah
       plots.forEach(plot => {
         if (
-          clickX >= plot.x &&
-          clickX <= plot.x + plot.width &&
-          clickY >= plot.y &&
-          clickY <= plot.y + plot.height
+          clickX >= plot.x && clickX <= plot.x + plot.width &&
+          clickY >= plot.y && clickY <= plot.y + plot.height
         ) {
-          // Gerakkan Petani ke Petak
           farmer.targetX = plot.x + plot.width / 2;
           farmer.targetY = plot.y + plot.height / 2;
-
-          // Aksi berdasarkan status sawah
           interactWithPlot(plot);
         }
       });
@@ -220,21 +341,21 @@
         // Tanam Bibit
         plot.state = 'SEED';
         plot.growthProgress = 0;
+        playSound('plant'); // Putar efek suara menanam
       } else if (plot.state === 'READY') {
-        // Panen Padi Menguning!
+        // Panen Padi Menguning
         plot.state = 'EMPTY';
         score += 10;
         scoreText.textContent = score;
         addFloatingText('+10 🌾', plot.x + plot.width / 2, plot.y);
+        playSound('harvest'); // Putar efek suara panen
 
-        // Cek Syarat Naik Level
-        if (score >= targetScore) {
-          completeLevel();
-        }
+        if (score >= targetScore) completeLevel();
       } else if (plot.state === 'PEST') {
         // Usir Hama
-        plot.state = 'GROWING'; // Kembalikan ke proses tumbuh
+        plot.state = 'GROWING';
         addFloatingText('Hama Diusir! 💥', plot.x + plot.width / 2, plot.y);
+        playSound('pest'); // Putar efek suara mengusir hama
       }
     }
 
@@ -259,9 +380,7 @@
         if (gameState === 'PLAYING') {
           timeLeft--;
           timeText.textContent = timeLeft + 's';
-          if (timeLeft <= 0) {
-            triggerGameOver();
-          }
+          if (timeLeft <= 0) triggerGameOver();
         }
       }, 1000);
 
@@ -270,12 +389,14 @@
 
     function completeLevel() {
       gameState = 'LEVEL_COMPLETE';
+      playSound('levelup'); // Putar efek suara level up
       clearInterval(timerInterval);
       level++;
     }
 
     function triggerGameOver() {
       gameState = 'GAMEOVER';
+      playSound('gameover'); // Putar efek suara game over
       clearInterval(timerInterval);
     }
 
@@ -283,7 +404,6 @@
     function gameLoop() {
       update();
       draw();
-
       if (gameState === 'PLAYING') {
         requestAnimationFrame(gameLoop);
       } else {
@@ -293,7 +413,7 @@
 
     // --- UPDATE LOGIKA ---
     function update() {
-      // Pergerakan Petani Manusia
+      // Pergerakan Petani
       const dx = farmer.targetX - farmer.x;
       const dy = farmer.targetY - farmer.y;
       const dist = Math.hypot(dx, dy);
@@ -306,30 +426,23 @@
         farmer.isMoving = false;
       }
 
-      // Perkembangan Tumbuhan Padi & Munculnya Hama
+      // Perkembangan Padi & Hama
       plots.forEach(plot => {
         if (plot.state === 'SEED') {
           plot.growthProgress += 0.8;
           if (plot.growthProgress >= 100) {
-            plot.state = 'GROWING';
-            plot.growthProgress = 0;
+            plot.state = 'GROWING'; plot.growthProgress = 0;
           }
         } else if (plot.state === 'GROWING') {
           plot.growthProgress += 0.5;
-          
-          // Peluang Muncul Hama (Semakin tinggi level, semakin sering)
           if (Math.random() < 0.001 * level && plot.state !== 'PEST') {
             plot.state = 'PEST';
-            plot.pestTimer = 180; // Waktu sebelum tanaman dirusak
+            plot.pestTimer = 180;
           }
-
-          if (plot.growthProgress >= 100) {
-            plot.state = 'READY'; // Siap Panen
-          }
+          if (plot.growthProgress >= 100) plot.state = 'READY';
         } else if (plot.state === 'PEST') {
           plot.pestTimer--;
           if (plot.pestTimer <= 0) {
-            // Hama merusak tanaman
             plot.state = 'EMPTY';
             addFloatingText('Padi Dimakan Hama! 🐀', plot.x + plot.width / 2, plot.y);
           }
@@ -339,47 +452,25 @@
       // Update Teks Mengapung
       for (let i = floatingTexts.length - 1; i >= 0; i--) {
         let ft = floatingTexts[i];
-        ft.y += ft.dy;
-        ft.alpha -= 0.02;
-        if (ft.alpha <= 0) {
-          floatingTexts.splice(i, 1);
-        }
+        ft.y += ft.dy; ft.alpha -= 0.02;
+        if (ft.alpha <= 0) floatingTexts.splice(i, 1);
       }
     }
 
     // --- DRAWING / VISUAL ---
     function draw() {
-      // 1. Rumput Lapangan Sawah
-      ctx.fillStyle = '#16a34a';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#16a34a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#ca8a04'; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Path Jalan Sawah (Pematang)
-      ctx.fillStyle = '#ca8a04';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // 2. Gambar Petak Sawah (Lumpur & Air)
       plots.forEach(plot => {
-        // Tanah Lumpur Sawah
-        ctx.fillStyle = '#78350f';
-        ctx.fillRect(plot.x, plot.y, plot.width, plot.height);
-
-        // Genangan Air Sawah
-        ctx.fillStyle = 'rgba(56, 189, 248, 0.25)';
-        ctx.fillRect(plot.x + 4, plot.y + 4, plot.width - 8, plot.height - 8);
-
-        // Bingkai Pematang Petak
-        ctx.strokeStyle = '#a16207';
-        ctx.lineWidth = 6;
-        ctx.strokeRect(plot.x, plot.y, plot.width, plot.height);
-
-        // Gambar Tanaman Padi berdasarkan Status
+        ctx.fillStyle = '#78350f'; ctx.fillRect(plot.x, plot.y, plot.width, plot.height);
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.25)'; ctx.fillRect(plot.x + 4, plot.y + 4, plot.width - 8, plot.height - 8);
+        ctx.strokeStyle = '#a16207'; ctx.lineWidth = 6; ctx.strokeRect(plot.x, plot.y, plot.width, plot.height);
         drawRicePlant(plot);
       });
 
-      // 3. Gambar Karakter Petani (Manusia)
       drawFarmer(farmer.x, farmer.y);
 
-      // 4. Gambar Teks Melayang (+Skor)
       floatingTexts.forEach(ft => {
         ctx.fillStyle = `rgba(255, 255, 255, ${ft.alpha})`;
         ctx.font = 'bold 18px Segoe UI';
@@ -388,142 +479,56 @@
       });
     }
 
-    // --- MENGGAMBAR TANAMAN PADI ---
     function drawRicePlant(plot) {
       const cx = plot.x + plot.width / 2;
       const cy = plot.y + plot.height / 2 + 15;
 
       if (plot.state === 'SEED') {
-        // Tunas Kecil 🌱
-        ctx.fillStyle = '#86efac';
-        ctx.beginPath();
-        ctx.arc(cx - 10, cy - 5, 4, 0, Math.PI * 2);
-        ctx.arc(cx, cy - 10, 5, 0, Math.PI * 2);
-        ctx.arc(cx + 10, cy - 5, 4, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillStyle = '#86efac'; ctx.beginPath();
+        ctx.arc(cx - 10, cy - 5, 4, 0, Math.PI * 2); ctx.arc(cx, cy - 10, 5, 0, Math.PI * 2); ctx.arc(cx + 10, cy - 5, 4, 0, Math.PI * 2); ctx.fill();
       } else if (plot.state === 'GROWING') {
-        // Padi Hijau Tumbuh 🌿
-        ctx.strokeStyle = '#22c55e';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(cx - 15, cy); ctx.lineTo(cx - 25, cy - 30);
-        ctx.moveTo(cx - 5, cy); ctx.lineTo(cx - 8, cy - 40);
-        ctx.moveTo(cx + 5, cy); ctx.lineTo(cx + 8, cy - 40);
-        ctx.moveTo(cx + 15, cy); ctx.lineTo(cx + 25, cy - 30);
-        ctx.stroke();
+        ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 3; ctx.beginPath();
+        ctx.moveTo(cx - 15, cy); ctx.lineTo(cx - 25, cy - 30); ctx.moveTo(cx - 5, cy); ctx.lineTo(cx - 8, cy - 40);
+        ctx.moveTo(cx + 5, cy); ctx.lineTo(cx + 8, cy - 40); ctx.moveTo(cx + 15, cy); ctx.lineTo(cx + 25, cy - 30); ctx.stroke();
       } else if (plot.state === 'READY') {
-        // Padi Matang Menguning 🌾 (Siap Panen)
-        ctx.strokeStyle = '#eab308';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(cx - 15, cy); ctx.lineTo(cx - 30, cy - 35);
-        ctx.moveTo(cx - 5, cy); ctx.lineTo(cx - 10, cy - 45);
-        ctx.moveTo(cx + 5, cy); ctx.lineTo(cx + 10, cy - 45);
-        ctx.moveTo(cx + 15, cy); ctx.lineTo(cx + 30, cy - 35);
-        ctx.stroke();
-
-        // Bulir Padi Emas
-        ctx.fillStyle = '#fef08a';
-        ctx.beginPath();
-        ctx.arc(cx - 30, cy - 35, 6, 0, Math.PI * 2);
-        ctx.arc(cx - 10, cy - 45, 6, 0, Math.PI * 2);
-        ctx.arc(cx + 10, cy - 45, 6, 0, Math.PI * 2);
-        ctx.arc(cx + 30, cy - 35, 6, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.strokeStyle = '#eab308'; ctx.lineWidth = 4; ctx.beginPath();
+        ctx.moveTo(cx - 15, cy); ctx.lineTo(cx - 30, cy - 35); ctx.moveTo(cx - 5, cy); ctx.lineTo(cx - 10, cy - 45);
+        ctx.moveTo(cx + 5, cy); ctx.lineTo(cx + 10, cy - 45); ctx.moveTo(cx + 15, cy); ctx.lineTo(cx + 30, cy - 35); ctx.stroke();
+        ctx.fillStyle = '#fef08a'; ctx.beginPath();
+        ctx.arc(cx - 30, cy - 35, 6, 0, Math.PI * 2); ctx.arc(cx - 10, cy - 45, 6, 0, Math.PI * 2);
+        ctx.arc(cx + 10, cy - 45, 6, 0, Math.PI * 2); ctx.arc(cx + 30, cy - 35, 6, 0, Math.PI * 2); ctx.fill();
       } else if (plot.state === 'PEST') {
-        // Hama Tikus/Burung Menyerang!
-        ctx.fillStyle = '#ef4444';
-        ctx.font = '28px Segoe UI';
-        ctx.textAlign = 'center';
-        ctx.fillText('🐀', cx, cy - 10);
+        ctx.fillStyle = '#ef4444'; ctx.font = '28px Segoe UI'; ctx.textAlign = 'center'; ctx.fillText('🐀', cx, cy - 10);
       }
     }
 
-    // --- MENGGAMBAR PETANI (MANUSIA DENGAN CAPING) ---
     function drawFarmer(x, y) {
-      // Bayangan Petani
-      ctx.fillStyle = 'rgba(0,0,0,0.25)';
-      ctx.beginPath();
-      ctx.ellipse(x, y + 22, 16, 8, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Badan / Baju Petani (Biru Tradisional)
-      ctx.fillStyle = '#2563eb';
-      ctx.fillRect(x - 10, y - 5, 20, 22);
-
-      // Celana Panjang (Hitam)
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(x - 9, y + 17, 8, 10);
-      ctx.fillRect(x + 1, y + 17, 8, 10);
-
-      // Kepala (Warna Kulit)
-      ctx.fillStyle = '#fbcfe8';
-      ctx.beginPath();
-      ctx.arc(x, y - 12, 9, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Topi Caping Petani (Bentuk Kerucut Segitiga Kuning/Cokelat)
-      ctx.fillStyle = '#f59e0b';
-      ctx.beginPath();
-      ctx.moveTo(x - 22, y - 14);
-      ctx.lineTo(x, y - 32);
-      ctx.lineTo(x + 22, y - 14);
-      ctx.closePath();
-      ctx.fill();
-
-      // Garis Tekstur Caping
-      ctx.strokeStyle = '#b45309';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(x, y - 32); ctx.lineTo(x, y - 14);
-      ctx.stroke();
+      ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(x, y + 22, 16, 8, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#2563eb'; ctx.fillRect(x - 10, y - 5, 20, 22);
+      ctx.fillStyle = '#1e293b'; ctx.fillRect(x - 9, y + 17, 8, 10); ctx.fillRect(x + 1, y + 17, 8, 10);
+      ctx.fillStyle = '#fbcfe8'; ctx.beginPath(); ctx.arc(x, y - 12, 9, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.moveTo(x - 22, y - 14); ctx.lineTo(x, y - 32); ctx.lineTo(x + 22, y - 14); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#b45309'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x, y - 32); ctx.lineTo(x, y - 14); ctx.stroke();
     }
 
-    // --- OVERLAY/LAYAR SEMENTARA ---
     function drawOverlay() {
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.textAlign = 'center';
-
       if (gameState === 'START') {
-        ctx.fillStyle = '#4ade80';
-        ctx.font = 'bold 32px Segoe UI';
-        ctx.fillText('Petani Menanam Padi 🌾', canvas.width / 2, canvas.height / 2 - 30);
-
-        ctx.fillStyle = '#f8fafc';
-        ctx.font = '18px Segoe UI';
-        ctx.fillText('Klik di mana saja untuk Memulai Permainan!', canvas.width / 2, canvas.height / 2 + 20);
+        ctx.fillStyle = '#4ade80'; ctx.font = 'bold 32px Segoe UI'; ctx.fillText('Petani Menanam Padi 🌾', canvas.width / 2, canvas.height / 2 - 30);
+        ctx.fillStyle = '#f8fafc'; ctx.font = '18px Segoe UI'; ctx.fillText('Klik di mana saja untuk Memulai Permainan!', canvas.width / 2, canvas.height / 2 + 20);
       } else if (gameState === 'LEVEL_COMPLETE') {
-        ctx.fillStyle = '#f59e0b';
-        ctx.font = 'bold 36px Segoe UI';
-        ctx.fillText(`LEVEL ${level - 1} SELESAI! 🎉`, canvas.width / 2, canvas.height / 2 - 30);
-
-        ctx.fillStyle = '#f8fafc';
-        ctx.font = '20px Segoe UI';
-        ctx.fillText(`Skor Kamu: ${score} | Target Lanjut: ${level * 60}`, canvas.width / 2, canvas.height / 2 + 15);
-
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = '16px Segoe UI';
-        ctx.fillText('Klik layar untuk lanjut ke Level Berikutnya', canvas.width / 2, canvas.height / 2 + 65);
+        ctx.fillStyle = '#f59e0b'; ctx.font = 'bold 36px Segoe UI'; ctx.fillText(`LEVEL ${level - 1} SELESAI! 🎉`, canvas.width / 2, canvas.height / 2 - 30);
+        ctx.fillStyle = '#f8fafc'; ctx.font = '20px Segoe UI'; ctx.fillText(`Skor Kamu: ${score} | Target Lanjut: ${level * 60}`, canvas.width / 2, canvas.height / 2 + 15);
+        ctx.fillStyle = '#38bdf8'; ctx.font = '16px Segoe UI'; ctx.fillText('Klik layar untuk lanjut', canvas.width / 2, canvas.height / 2 + 65);
       } else if (gameState === 'GAMEOVER') {
-        ctx.fillStyle = '#ef4444';
-        ctx.font = 'bold 36px Segoe UI';
-        ctx.fillText('WAKTU HABIS! ⌛', canvas.width / 2, canvas.height / 2 - 30);
-
-        ctx.fillStyle = '#f8fafc';
-        ctx.font = '20px Segoe UI';
-        ctx.fillText(`Skor Akhir: ${score} (Mencapai Level ${level})`, canvas.width / 2, canvas.height / 2 + 15);
-
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = '16px Segoe UI';
-        ctx.fillText('Klik layar untuk Main Lagi', canvas.width / 2, canvas.height / 2 + 65);
+        ctx.fillStyle = '#ef4444'; ctx.font = 'bold 36px Segoe UI'; ctx.fillText('WAKTU HABIS! ⌛', canvas.width / 2, canvas.height / 2 - 30);
+        ctx.fillStyle = '#f8fafc'; ctx.font = '20px Segoe UI'; ctx.fillText(`Skor Akhir: ${score} (Level ${level})`, canvas.width / 2, canvas.height / 2 + 15);
+        ctx.fillStyle = '#38bdf8'; ctx.font = '16px Segoe UI'; ctx.fillText('Klik layar untuk Main Lagi', canvas.width / 2, canvas.height / 2 + 65);
       }
     }
 
-    // Tampilan awal
-    draw();
-    drawOverlay();
+    draw(); drawOverlay();
   </script>
 </body>
 </html>
